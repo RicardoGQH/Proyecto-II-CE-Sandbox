@@ -10,29 +10,13 @@ Jesus Guerrero Zamora
 #Librerias importadas============================================================================================================
 import pygame
 import sys
+from Carga_y_guardado import *
 
-#INICIALIZACIÓN DE PYGAME Y VARIABLES GLOBALES===================================================================================
+#INICIALIZACIÓN DE PYGAME =======================================================================================================
 pygame.init()
-tamaño_ventana=(800,500)
 Ventana_principal= pygame.display.set_mode(tamaño_ventana)
 pygame.display.set_caption("Sandbox")
-fps=60
-timer=pygame.time.Clock()
-matriz_guardada=[]
-elemento=0
 rect_inicio = None 
-
-#COLORES=========================================================================================================================
-NEGRO = (0, 0, 0)
-BLANCO = (255, 255, 255)
-ROJO = (255, 0, 0)
-VERDE = (0, 255, 0)
-AZUL = (0, 0, 255)
-AMARILLO = (255, 255, 0)
-NARANJA = (255, 165, 0)
-MORADO = (128, 0, 128)
-GRIS = (128, 128, 128)
-CELESTE = (135, 206, 235)
 
 #RECURSOS GRÁFICOS==============================================================================================================
 
@@ -49,6 +33,8 @@ textura_planta1=pygame.image.load("recursos\Imagenes\Textura planta 1.png").conv
 textura_planta2=pygame.image.load("recursos\Imagenes\Textura planta 2.png").convert()
 textura_planta3=pygame.image.load("recursos\Imagenes\Textura planta 3.png").convert()
 textura_animal= pygame.image.load("recursos\Imagenes\Textura animal.png").convert()
+
+#fuentes
 fuente_titulo= pygame.font.SysFont("Times New Roman",40)
 fuente_botones=pygame.font.SysFont("Times New Roman",20)
 
@@ -57,7 +43,20 @@ fondo_menu = pygame.image.load("recursos/Imagenes/fondo menu.png")
 fondo_menu=pygame.transform.scale(fondo_menu,(800,500))
 fondo_color=GRIS
 
+#Audio y musica==================================================================================================================
+pygame.mixer.init()
+Sonido_pulsado_botones= pygame.mixer.Sound("recursos\Audio\sound10.wav")
+Sonido_pulsado_botones.set_volume(0.15)
+sonido_vaca=pygame.mixer.Sound("recursos\Audio\sonido vaca.wav")
+
 #FUNCIONES=======================================================================================================================
+#Descripción: Carga un archivo de audio en el mixer de pygame y lo reproduce en bucle infinito.
+#Entradas: Ruta (str): ruta del archivo de música que se desea reproducir.
+#Salidas: Ninguna. 
+#Efecto: la canción indicada empieza a sonar y se repite.
+def cambiar_musica(Ruta):#
+    pygame.mixer.music.load(Ruta)
+    pygame.mixer.music.play(-1,0.0)#de esta manera la cancion se repite
 
 # Descripción: Cambia de la ventana del menú a la ventana principal del sandbox y ejecuta su bucle de interacción.
 # Entradas: Ninguna.
@@ -101,6 +100,7 @@ def pasar_ventana():
         boton_pincel1.dibujar_boton(eventos)
         boton_pincel2.dibujar_boton(eventos)
         boton_pincel3.dibujar_boton(eventos)
+        boton_guardar.dibujar_boton(eventos)
         
         aplicar_pincel()
         seleccionar_rectangulo(eventos)
@@ -136,7 +136,9 @@ def crear_matrices(filas, columnas):
 def matriz_juego():
     global sprites, matriz_guardada,tamaño_cuadricula
     global centrar_x,centrar_y
-    matriz_guardada=crear_matrices(int(dimensiones),int(dimensiones))
+    
+    if not matriz_guardada:
+        matriz_guardada = crear_matrices(int(dimensiones), int(dimensiones))
 
     tamaño_cuadricula = min(1280 // int(dimensiones), 720 // int(dimensiones))
     centrar_x= (1280 - tamaño_cuadricula * int(dimensiones)) // 2
@@ -152,14 +154,15 @@ def matriz_juego():
 # Salidas: Ninguna.
 # Efectos: Dibuja un mensaje si el valor no es válido o inicia la ventana del juego si es válido.
 def verificador():
-    global filas,columnas,dimensiones
+    global filas,columnas,dimensiones,texto_error
+    Sonido_pulsado_botones.play()
     if dimensiones.isdigit():
         if len(dimensiones)<=0 or int(dimensiones)<20  or int(dimensiones)>100:
-            dibujar_texto("DEBE DE PROPORCIONAR 2 VALORES ENTRE 20 Y 100", fuente_botones, NEGRO,200,200)
+            texto_error="SE DEBE SELECCIONAR UN VALOR ENTRE 20 Y 100"
         else:
             pasar_ventana()
     else:
-        dibujar_texto("TIENE QUE RELLENAR LOS CUADROS",fuente_botones,NEGRO,200,200)
+        texto_error="TIENE QUE RELLENAR EL CUADRO"
 
 # Descripción: Establece el elemento que se utilizará al interactuar con las celdas de la matriz.
 # Entradas: numero (identificador del elemento seleccionado).
@@ -197,18 +200,22 @@ def limpiar_matriz():
 def seleccionar_pincel(pincel):
     global pincel_actual
     pincel_actual = pincel
-    
+
+#Descripción:es una verificacion de que el boton derecho del mouse fue pulsado
+#Entradas:no tiene
+#Salidas:True, o False
+#Efectos:Le dice al codigo si se esta preionando el click derecho o no    
 def aplicar_pincel():
     if not pygame.mouse.get_pressed()[0]:
         return
 
     x, y = pygame.mouse.get_pos()
-    j = (x - centrar_x) // tamaño_cuadricula
-    i = (y - centrar_y) // tamaño_cuadricula
-    n = len(matriz_guardada)
+    filas= (x - centrar_x) // tamaño_cuadricula
+    columnas= (y - centrar_y) // tamaño_cuadricula
+    valores= len(matriz_guardada)#n
 
-    if 0 <= i < n and 0 <= j < n:
-        pincel_actual.aplicar(i, j, elemento)
+    if 0 <= columnas < valores and 0 <= filas< valores:
+        pincel_actual.aplicar(columnas, filas, elemento)
         
 # Descripción: Rellena un rectángulo de celdas con el elemento actual usando el click derecho (presionar, arrastrar y soltar).
 # Entradas: eventos (lista de eventos de Pygame).
@@ -233,6 +240,23 @@ def seleccionar_rectangulo(eventos):
                 for c in range(max(0, c1), min(n - 1, c2) + 1):
                     matriz_guardada[f][c] = elemento
             rect_inicio = None
+
+#Descripción:Establece a  una matriz como la matriz cargada
+#entradas:la matriz utilizada
+#salidas:no tiene
+#efectos:la matriz guardada para a ser la variable matriz_guardada y las dimenciones las mismas            
+def cargar_matriz_interfaz():
+    global matriz_guardada, dimensiones
+
+    matriz = cargar_matriz()
+
+    if matriz is None:
+        return
+
+    matriz_guardada = matriz
+    dimensiones = str(len(matriz))
+    caja_x.texto = dimensiones
+    
 #CLASES==========================================================================================================================
 class Boton:
 
@@ -260,6 +284,7 @@ class Boton:
         
         if self.presionado(eventos):
             pygame.draw.rect(Ventana_principal,"dark grey", self.forma, 0, 5)
+            Sonido_pulsado_botones.play()
         else:
             pygame.draw.rect(Ventana_principal,"grey", self.forma, 0, 5)
             
@@ -298,27 +323,25 @@ class CajaTexto:
     # Salidas: Ninguna.
     # Efectos: Modifica el texto, el estado de escritura y el color de fondo; dibuja la caja de texto.
     def escribir(self,eventos):
+        global texto_error
         for evento in eventos:
             if evento.type==pygame.MOUSEBUTTONDOWN:
                 self.escribiendo=self.forma.collidepoint(evento.pos)
             if evento.type== pygame.KEYDOWN and self.escribiendo:
                 if evento.key== pygame.K_BACKSPACE:
                     self.texto=self.texto[:-1]
-                    self.color_fondo=BLANCO
-                elif evento.key==pygame.K_RETURN:
-                    if len(self.texto):
-                        self.color_fondo=VERDE
-                    else:
-                        self.color_fondo=BLANCO
+                    self.color=BLANCO
+                    texto_error=""
                 elif evento.unicode.isdigit():
                     if len(self.texto)<=2:
                         self.color_fondo=BLANCO
                         self.texto+=evento.unicode
+                        texto_error=""
                     else:
-                        self.color_fondo=ROJO
+                        texto_error="solo se pueden ingresar 3 digitos"
                 else:
                     self.color_fondo=ROJO 
-                    dibujar_texto("NOOOOO",fuente_botones,NEGRO, 250,250)
+                    texto_error="SOLO SE PUEDEN INGRESAR NUMEROS"
         self.dibujar_caja()
 
     # Descripción: Dibuja la caja de texto, su borde y el contenido actual.
@@ -428,7 +451,7 @@ class Pincel:
 #OBJETOS========================================================================================
 
 #objetos de tipo BOTON
-boton_iniciar= Boton("INICIAR JUEGO",280,380,True, verificador)
+boton_iniciar= Boton("INICIAR JUEGO",200,380,True, verificador)
 boton_arena=Boton("ARENA",0,100,True,lambda:elemento_seleccionado(1))
 boton_agua=Boton("AGUA",0,150,True,lambda:elemento_seleccionado(2))
 boton_piedra= Boton("PIEDRA",0,200,True,lambda:elemento_seleccionado(3))
@@ -438,7 +461,9 @@ boton_semillas= Boton("SEMILLAS",0,350,True,lambda:elemento_seleccionado(6))
 boton_pasto= Boton("PLANTAS",0,400,True,lambda:elemento_seleccionado(8))
 boton_animal= Boton("ANIMALES",0, 450,True,lambda:elemento_seleccionado(11))
 boton_borrar=Boton("BORRAR",0,500,True,lambda:elemento_seleccionado(0))
-boton_reiniciar= Boton("REINICIAR",0,600,True,lambda:limpiar_matriz())
+boton_reiniciar= Boton("REINICIAR",200,380,True,lambda:limpiar_matriz())
+boton_cargar= Boton("CARGAR",380,380,True,cargar_matriz_interfaz)
+boton_guardar= Boton("Guardar",1130,400,True,lambda:guardar_matriz(matriz_guardada))
 
 boton_pincel1 = Boton("PINCEL 1", 1130, 100, True, lambda: seleccionar_pincel(pincel_1))
 boton_pincel2 = Boton("PINCEL 2", 1130, 150, True, lambda: seleccionar_pincel(pincel_2))
@@ -452,6 +477,7 @@ pincel_actual = pincel_1
 
 #objetos de tipo CajaTexto
 caja_x= CajaTexto(320,300)
+cambiar_musica("recursos\Audio\Audio pantalla de incio.mp3")
 
 # BUCLE PRINCIPAL==================================================================================================================
 run=True
@@ -459,15 +485,17 @@ while run:
     Ventana_principal.fill(fondo_color)
     Ventana_principal.blit(fondo_menu,(0,0))    
     dibujar_texto("SANDOX",fuente_titulo, NEGRO,280,10)
+    dibujar_texto(texto_error,fuente_botones,NEGRO,210,420)
+    dibujar_texto("ESCRIBE LAS DIMENSIONES DEL MUNDO",fuente_botones,NEGRO,210,250)
     timer.tick(fps)
     eventos=pygame.event.get()
     
     for evento in eventos:
         if evento.type==pygame.QUIT:
             run=False   
-    
     caja_x.escribir(eventos)
     boton_iniciar.dibujar_boton(eventos)
+    boton_cargar.dibujar_boton(eventos)
     dimensiones=caja_x.texto
     pygame.display.flip()
 
