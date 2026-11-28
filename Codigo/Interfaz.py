@@ -144,8 +144,9 @@ def matriz_juego():
     centrar_x= (1280 - tamaño_cuadricula * int(dimensiones)) // 2
     centrar_y= (720 - tamaño_cuadricula * int(dimensiones)) // 2
 
-    for i, fila in enumerate(matriz_guardada):
-        for j, valor in enumerate(fila):
+    for i in range(len(matriz_guardada)):
+        for j in range(len(matriz_guardada[i])):
+            valor = matriz_guardada[i][j]
             pos = (centrar_x + j * tamaño_cuadricula, centrar_y + i * tamaño_cuadricula)
             cuadriculas(pos, sprites, i, j, tamaño_cuadricula)
 
@@ -233,11 +234,11 @@ def seleccionar_rectangulo(eventos):
             fila = (evento.pos[1] - centrar_y) // tamaño_cuadricula
             columna = (evento.pos[0] - centrar_x) // tamaño_cuadricula
 
-            f1, f2 = sorted((rect_inicio[0], fila))
-            c1, c2 = sorted((rect_inicio[1], columna))
+            fila_inicial, fila_final = sorted((rect_inicio[0], fila))
+            columna_inicial, columna_final = sorted((rect_inicio[1], columna))
 
-            for f in range(max(0, f1), min(n - 1, f2) + 1):
-                for c in range(max(0, c1), min(n - 1, c2) + 1):
+            for f in range(max(0, fila_inicial), min(n - 1, fila_final) + 1):
+                for c in range(max(0, columna_inicial), min(n - 1, columna_final) + 1):
                     matriz_guardada[f][c] = elemento
             rect_inicio = None
 
@@ -250,7 +251,7 @@ def cargar_matriz_interfaz():
 
     matriz = cargar_matriz()
 
-    if matriz is None:
+    if matriz is None:#esto corta la funcion si no se cargo una matriz
         return
 
     matriz_guardada = matriz
@@ -442,11 +443,13 @@ class Pincel:
     # Efectos: Modifica varios valores de matriz_guardada, ignorando los que se salgan de la matriz.
     def aplicar(self, fila, columna, valor):
         n = len(matriz_guardada)
-        for di, dj in self.desplazamientos:
-            f = fila + di
-            c = columna + dj
-            if 0 <= f < n and 0 <= c < n:
-                matriz_guardada[f][c] = valor
+        for i in range(len(self.desplazamientos)):
+            desplazamiento_fila = self.desplazamientos[i][0]
+            desplazamiento_columnas = self.desplazamientos[i][1]
+            filas = fila + desplazamiento_fila
+            columnas = columna + desplazamiento_columnas
+            if 0 <= filas < n and 0 <= columnas < n:
+                matriz_guardada[filas][columnas] = valor
     
 #OBJETOS========================================================================================
 
@@ -461,7 +464,7 @@ boton_semillas= Boton("SEMILLAS",0,350,True,lambda:elemento_seleccionado(6))
 boton_pasto= Boton("PLANTAS",0,400,True,lambda:elemento_seleccionado(8))
 boton_animal= Boton("ANIMALES",0, 450,True,lambda:elemento_seleccionado(11))
 boton_borrar=Boton("BORRAR",0,500,True,lambda:elemento_seleccionado(0))
-boton_reiniciar= Boton("REINICIAR",200,380,True,lambda:limpiar_matriz())
+boton_reiniciar= Boton("REINICIAR",0,600,True,lambda:limpiar_matriz())
 boton_cargar= Boton("CARGAR",380,380,True,cargar_matriz_interfaz)
 boton_guardar= Boton("Guardar",1130,400,True,lambda:guardar_matriz(matriz_guardada))
 
@@ -470,9 +473,9 @@ boton_pincel2 = Boton("PINCEL 2", 1130, 150, True, lambda: seleccionar_pincel(pi
 boton_pincel3 = Boton("PINCEL 3", 1130, 200, True, lambda: seleccionar_pincel(pincel_3))
 
 #Objetos de tipo Pincel
-pincel_1 = Pincel("PINCEL 1", 0)   # 1 celda
-pincel_2 = Pincel("PINCEL 2", 1)   # 9 celdas
-pincel_3 = Pincel("PINCEL 3", 2)   # 25 celdas
+pincel_1 = Pincel("PINCEL 1", 0)   
+pincel_2 = Pincel("PINCEL 2", 1)   
+pincel_3 = Pincel("PINCEL 3", 2)   
 pincel_actual = pincel_1
 
 #objetos de tipo CajaTexto

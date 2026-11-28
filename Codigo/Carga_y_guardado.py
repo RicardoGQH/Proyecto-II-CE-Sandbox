@@ -39,11 +39,11 @@ def cargar_matriz():
 #efectos: se crea un archivo json con la matriz para ser cargada posteriormente
 
 def guardar_matriz(matriz):
-    root = tk.Tk()
-    root.withdraw()
-    root.attributes("-topmost", True)
+    ventana = tk.Tk()
+    ventana.withdraw()
+    ventana.attributes("-topmost", True)
     ruta = filedialog.asksaveasfilename(title="Guardar matriz como",defaultextension=".json", filetypes=[("JSON", "*.json")])
-    root.destroy()
+    ventana.destroy()
 
     if not ruta:            # el usuario canceló
         return False
